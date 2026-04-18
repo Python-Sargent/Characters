@@ -1,0 +1,14 @@
+
+[Features]
+
+#   Allow attaching cosmetics to players
+#
+#   Disabling stops players from wearing their cosmetics
+characters_attachments (Allow Cosmetics) bool true
+
+[Debugging/Logging]
+
+#   Warn about Player API compat
+#
+#   Don't disable unless you understand said warnings
+characters_player_api_warnings (Player API Warnings) bool true
