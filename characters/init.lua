@@ -44,6 +44,8 @@ characters.get_anim = function(player)
     return player_anims[player:get_player_name()] or nil -- shouldn't need the 'or nil' part but it is easier to understand
 end
 
+--characters.sequences = {}
+
 characters.animate = function(_, __) end
 
 characters.animate = function(player, animation)
@@ -79,6 +81,7 @@ characters.animate = function(player, animation)
         end
 
     else -- if no anim defined then reset the anim to default
+        --characters.sequences[player:get_player_name()] = nil
         if characters.registered_animations["idle"] ~= nil then
             --local anim = characters.registered_animations["idle"] -- idle animations should be looped otherwise thread recursion will occur
             core.after(0, characters.animate, player, {name="idle"})
@@ -94,13 +97,16 @@ characters.animate = function(player, animation)
 end
 
 characters.set_animation = function(player, anim)
-    if anim.name == nil then
-        characters.animate(player, anim)
-    elseif characters.get_anim(player) == nil or characters.get_anim(player) ~= anim.name then
-        characters.animate(player, anim)
-    end
+    --if characters.sequences[player:get_player_name()] == nil then
+        if anim.name == nil then
+            characters.animate(player, anim)
+        elseif characters.get_anim(player) == nil or characters.get_anim(player) ~= anim.name then
+            characters.animate(player, anim)
+        end
+    --end
 end
 
+--[[
 characters.animate_sequence = function(player, seq)
     for i = 1, #seq - 1 do
         if seq[i + 1].loop and seq[i + 1].length == nil then -- looped untimed animations cannot be sequenced, as they do not end
@@ -108,10 +114,17 @@ characters.animate_sequence = function(player, seq)
         end
         seq[i].next = seq[i + 1]
     end
-    seq[#seq].next = nil
+    if seq[#seq] ~= nil then
+        seq[#seq].next = nil
+    end
     local anim = seq[1]
+    characters.sequences[player:get_player_name()] = seq
+
+    core.log("Sequence: "..dump(seq))
+
     characters.animate(player, anim)
 end
+]]
 
 characters.lerp = function(x, y, a) return x * (1 - a) + y * a end
 

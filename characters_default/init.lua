@@ -64,6 +64,22 @@ characters.register_animation({
 	loop = true
 })
 
+characters.register_animation({
+	name = "death",
+	range = {x = 180, y = 200}, 
+	speed = 30,
+	blend = 0.1,
+	loop = false
+})
+
+characters.register_animation({
+	name = "lay",
+	range = {x = 200, y = 200}, 
+	speed = 0,
+	blend = 0.5,
+	loop = true
+})
+
 characters.api.moving = function(player)
     local cont = player:get_player_control()
     local deadstick = 0.01 -- needed for keyboard users as well because the movement controls are leaky apparently
@@ -85,7 +101,15 @@ characters.is_on_ground = function(player)
     return core.registered_nodes[stand.name].walkable == true
 end
 
+core.register_on_dieplayer(function(player, reason)
+    --characters.animate_sequence(player, {name="death", next={name="lay"}})
+    characters.animate(player, {name="death", next={name="lay"}})
+    player:set_bone_override("Neck", {position = nil, rotation = nil})
+end)
+
 characters.api.step(function(player, dtime)
+    if player:get_hp() <= 0 then return end
+
     local vel = player:get_velocity()
     local look = player:get_look_dir()
     local cont = player:get_player_control()
@@ -95,13 +119,10 @@ characters.api.step(function(player, dtime)
 
     local speed = math.abs(vel.x) + math.abs(vel.z)
 
-    --core.log(dump(speed))
-
-    player:set_bone_override("Neck", { position = nil, rotation = {vec=vector.new((1-look.y+270)*1.6, 0, 0), interpolation=0.1}})
-    
-    if cont.sneak then
-        
+    if player:get_hp() > 0 then
+        player:set_bone_override("Neck", { position = nil, rotation = {vec=vector.new((1-look.y+270)*1.6, 0, 0), interpolation=0.1}})
     end
+    
     -- for movement, speed of animation should be affected by velocity
     if core.registered_nodes[stand.name].drawtype == "liquid" or core.registered_nodes[stand.name].drawtype == "flowingliquid" then
         if characters.api.moving(player).y then
