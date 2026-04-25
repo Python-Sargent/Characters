@@ -1,10 +1,17 @@
 characters.api = {}
 
-characters.api.update_model = function(player)
+characters.api.update_model = function(player, override)
     if characters.api.model ~= nil then -- model set, then apply it to the player
         local properties = characters.api.model
         properties.visual = properties.visual or "mesh"
         properties.mesh = properties.mesh or nil
+
+        if override then
+            for k, v in pairs(override) do
+                properties[k] = v
+            end
+        end
+
         player:set_properties(properties)
     end
 end

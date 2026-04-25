@@ -38,6 +38,7 @@ Character Features: **(WIP)**
 * Attachments
   * Capes
   * Cosmetics
+  * 3D Skins
 * Multi-Layered Skins
 * Sequenced Animations
 

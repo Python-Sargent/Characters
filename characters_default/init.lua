@@ -2,7 +2,7 @@ characters.api.set_base_properties({
     mesh = "characters_default_player.glb",
     textures = {
         "characters_default_layer0.png",
-        "characters_default_layer1.png"
+        --"characters_default_layer1.png"
     },
     visual_size = { x = 7, y = 7 },
     eye_height = 1.6,
@@ -37,7 +37,8 @@ characters.register_animation({
 	range = {x = 100, y = 120}, 
 	speed = 15,
 	blend = 0.5,
-	loop = true
+	loop = true,
+    eye_offset = vector.new(0, -1, 0)
 })
 
 characters.register_animation({
@@ -45,7 +46,8 @@ characters.register_animation({
 	range = {x = 165, y = 175}, 
 	speed = 10,
 	blend = 0.5,
-	loop = true
+	loop = true,
+    eye_offset = vector.new(0, -1, 0)
 })
 
 characters.register_animation({
@@ -53,7 +55,8 @@ characters.register_animation({
 	range = {x = 125, y = 145}, 
 	speed = 10,
 	blend = 2,
-	loop = true
+	loop = true,
+    eye_offset = vector.new(0, -12, 0)
 })
 
 characters.register_animation({
@@ -75,10 +78,39 @@ characters.register_animation({
 characters.register_animation({
 	name = "lay",
 	range = {x = 200, y = 200}, 
-	speed = 0,
+	speed = 0, -- overridden by dynamic animaiton
 	blend = 0.5,
-	loop = true
+	loop = true,
+    eye_offset = vector.new(0, -12, 0)
 })
+
+characters.register_animation({
+	name = "crawl",
+	range = {x = 205, y = 225}, 
+	speed = 0, 
+	blend = 0.1,
+	loop = true,
+    eye_offset = vector.new(0, -12, 0)
+})
+
+local calculate_eye_offset = function(player)
+    local y_offset = 0
+    local animation = characters.get_anim(player)
+    if animation ~= nil and animation.eye_offset ~= nil and animation.eye_offset.y ~= nil and animation.eye_offset.y ~= 0 then
+        y_offset = animation.eye_offset.y/10     -- TODO: a little broken, gonna have to make some visual diagnostics
+    end
+    return characters.api.model.eye_height+y_offset
+end
+
+characters.register_eye_offset_callback(function(player, animation)
+    local y_offset = 0
+    if animation.eye_offset ~= nil and animation.eye_offset.y ~= nil and animation.eye_offset.y ~= 0 then
+        y_offset = animation.eye_offset.y/10     -- TODO: a little broken, gonna have to make some visual diagnostics
+    end
+    local y_base = characters.api.model.eye_height
+    local cb = {-0.25, 0, -0.25, 0.25, y_base+y_offset+0.25, 0.25}
+    characters.api.update_model(player, {collisionbox = cb})
+end)
 
 characters.api.moving = function(player)
     local cont = player:get_player_control()
@@ -89,16 +121,25 @@ characters.api.moving = function(player)
     }
 end
 
-local swimmable = function(player)
-    --local feet = core.get_node(player:get_pos())
-    local eyes = core.get_node(vector.offset(player:get_pos(), 0, 1.5, 0))
-    --(core.registered_nodes[feet.name].drawtype == "liquid" or core.registered_nodes[feet.name].drawtype == "flowingliquid") and
+local submerged = function(player)
+    local eyes = core.get_node(vector.offset(player:get_pos(), 0, calculate_eye_offset(player)-0.25, 0))
     return (core.registered_nodes[eyes.name].drawtype == "liquid" or core.registered_nodes[eyes.name].drawtype == "flowingliquid")
+end
+
+local wading = function(player)
+    local feet = core.get_node(vector.offset(player:get_pos(), 0, 0, 0))
+    return (core.registered_nodes[feet.name].drawtype == "liquid" or core.registered_nodes[feet.name].drawtype == "flowingliquid")
+end
+
+local crawlable = function(player)
+    local eyes = core.get_node(vector.offset(player:get_pos(), 0, 1.5, 0))
+    local feet = core.get_node(player:get_pos())
+    return core.registered_nodes[eyes.name].walkable and not core.registered_nodes[feet.name].walkable
 end
 
 characters.is_on_ground = function(player)
     local stand = core.get_node(vector.offset(player:get_pos(), 0, -0.5, 0))
-    return core.registered_nodes[stand.name].walkable == true
+    return core.registered_nodes[stand.name].walkable
 end
 
 core.register_on_dieplayer(function(player, reason)
@@ -124,7 +165,14 @@ characters.api.step(function(player, dtime)
     end
     
     -- for movement, speed of animation should be affected by velocity
-    if core.registered_nodes[stand.name].drawtype == "liquid" or core.registered_nodes[stand.name].drawtype == "flowingliquid" then
+    if crawlable(player) then
+        characters.set_animation(player, {name="crawl"})
+        if speed > 0.2 then
+            player:set_animation_frame_speed(15*speed)
+        else
+            player:set_animation_frame_speed(0)
+        end
+    elseif submerged(player) then
         if characters.api.moving(player).y then
             -- swimming normally
             if speed > 0.2 then
@@ -133,7 +181,7 @@ characters.api.step(function(player, dtime)
             else
                 characters.set_animation(player, {name="swim_idle"})
             end
-            characters.set_animation(player, {name="swim"})
+            --characters.set_animation(player, {name="swim"})
         elseif characters.api.moving(player).x then
             -- swimming on side
             if speed > 0.2 then
@@ -150,7 +198,7 @@ characters.api.step(function(player, dtime)
         -- falling
         characters.set_animation(player, {name="fall"})
     elseif speed > 0.2 then
-        if characters.is_on_ground(player) then
+        if characters.is_on_ground(player) or wading(player) then
             if characters.api.moving(player).x and not characters.api.moving(player).y then
                 -- sidestepping
                 characters.set_animation(player, {name="strafe"})
@@ -165,8 +213,14 @@ characters.api.step(function(player, dtime)
         elseif speed > 19 then
             characters.set_animation(player, {name="fly"})
         else
-            player:set_animation_frame_speed(1*speed)
-            --characters.set_animation(player, {name="idle"})
+            if characters.get_anim(player) ~= nil then
+                local an = characters.get_anim(player).name
+                if an == "walk" or an == "strafe" then
+                    player:set_animation_frame_speed(1*speed)
+                end
+            else
+                characters.set_animation(player, {name="idle"})
+            end
         end
         -- no good way to check if player is using fast mode, sprinting will have to wait
     else

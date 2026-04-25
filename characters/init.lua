@@ -46,6 +46,29 @@ end
 
 --characters.sequences = {}
 
+local eye_offset_callbacks = {}
+
+characters.register_eye_offset_callback = function(callback)
+    table.insert(eye_offset_callbacks, callback)
+end
+
+characters.update_eyes = function(player, animation)
+    -- TODO: eventually eye offset should be lerped
+
+    for _, v in pairs(eye_offset_callbacks) do
+        v(player, animation)
+    end
+
+    -- animation.eye_offset is either offset vector or table of offset vectors for each pov, must include all three (nillable)
+    if animation.eye_offset ~= nil then
+        player:set_eye_offset(animation.eye_offset.first or animation.eye_offset, animation.eye_offset.back or animation.eye_offset, animation.eye_offset.front or animation.eye_offset)
+    else
+        player:set_eye_offset(vector.new(0, 0, 0), vector.new(0, 0, 0), vector.new(0, 0, 0)) -- set back to regular eye height
+    end
+
+    -- should also update collisionbox
+end
+
 characters.animate = function(_, __) end
 
 characters.animate = function(player, animation)
@@ -75,11 +98,6 @@ characters.animate = function(player, animation)
                 core.after(0, characters.animate, player, animation.next)
             end
         end
-
-        if animation.eye_offset ~= nil then -- animation.eye_offset is either offset vector or table of offset vectors for each pov, must include all three (nillable)
-            player:set_eye_offset(animation.eye_offset.first or animation.eye_offset, animation.eye_offset.back or animation.eye_offset, animation.eye_offset.front or animation.eye_offset)
-        end
-
     else -- if no anim defined then reset the anim to default
         --characters.sequences[player:get_player_name()] = nil
         if characters.registered_animations["idle"] ~= nil then
@@ -91,6 +109,7 @@ characters.animate = function(player, animation)
     end
 
     if a.range ~= nil then
+        characters.update_eyes(player, a)
         update_animation_for_player(player, animation.name)
         player:set_animation(a.range, a.speed, a.blend, a.loop)
     end
@@ -130,15 +149,15 @@ characters.lerp = function(x, y, a) return x * (1 - a) + y * a end
 
 local lanimations = {}
 
-characters.lanimate = function(x, y, t, setter, name)
+characters.lanimate = function(x, y, delta, length, setter, name)
     if lanimations[name] ~= nil then
-        lanimations[name].time = lanimations[name].time + t[1]
+        lanimations[name].time = lanimations[name].time + delta
     else
         lanimations[name] = {}
-        lanimations[name].time = t[1] -- t[1] =  ddelta time, t[2] = total time
+        lanimations[name].time = delta
     end
 
-    local d = characters.lerp(x, y, lanimations[name].time/t[2])
+    local d = characters.lerp(x, y, lanimations[name].time/length)
     if d == y then
         lanimations[name] = nil -- remove finished lanimation
     end
