@@ -6,6 +6,11 @@
 #   Disabling stops players from wearing their cosmetics
 characters_attachments (Allow Cosmetics) bool true
 
+#   Allow crawling in one-block spaces
+#
+#   Disabling stops players from entering the crawl animation
+characters_allow_crawl (Allow Crawling) bool true
+
 [Debugging/Logging]
 
 #   Warn about Player API compat

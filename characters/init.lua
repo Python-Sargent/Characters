@@ -165,4 +165,4 @@ characters.lanimate = function(x, y, delta, length, setter, name)
     return d
 end
 
---dofile(modpath.."/attachments.lua")
+dofile(modpath.."/attachments.lua")

@@ -165,10 +165,14 @@ characters.api.step(function(player, dtime)
     end
     
     -- for movement, speed of animation should be affected by velocity
-    if crawlable(player) then
+    if core.settings:get_bool("characters_allow_crawl", true) and crawlable(player) then
         characters.set_animation(player, {name="crawl"})
         if speed > 0.2 then
-            player:set_animation_frame_speed(15*speed)
+            if cont.movement_y > 0.001 then
+                player:set_animation_frame_speed(25*speed)
+            elseif cont.movement_y < 0.001 then
+                player:set_animation_frame_speed(-25*speed)
+            end
         else
             player:set_animation_frame_speed(0)
         end

@@ -49,6 +49,7 @@ end
 
 characters.get_saved_attachments = function(player)
     local s = characters.mod_storage:get_string(player:get_player_name() .. "_attachments")
+    characters.mod_storage:set_string(player:get_player_name() .. "_attachments", "") -- stops garbage from building up
     return core.deserialize(s, true) or {}
 end
 
@@ -57,8 +58,7 @@ characters.save_attachments = function(player)
         local s = characters.get_saved_attachments(player)
         for k, v in pairs(characters.attachments[player:get_player_name()]) do
             if core.objects_by_guid[v.guid] ~= nil then -- is valid attachment
-                --core.log(dump(v))
-                table.insert(s, characters.get_attachment(v.name))
+                table.insert(s, v.name)
             end
         end
         characters.mod_storage:set_string(player:get_player_name() .. "_attachments", core.serialize(s))
@@ -78,7 +78,7 @@ characters.attach = function(player, attachment)
                 characters.attachments[player:get_player_name()] = {{guid=obj:get_guid(), entity_name=obj:get_luaentity().name, name=attachment.name}}
             end
             obj:set_attach(player, attachment.bone or "", attachment.pos or vector.new(0, 0, 0), attachment.rot or vector.new(0, 0, 0), attachment.force_visible or false)
-            characters.save_attachments(player)
+            --characters.save_attachments(player)
             return true, "Cosmetic succesfully attached"
         else
             return false, "Cannot attach nil"
@@ -90,11 +90,8 @@ end
 
 characters.load_attachments = function(player)
     local s = characters.get_saved_attachments(player)
-
-    --core.log(dump(s))
-
     for k, v in pairs(s) do
-        characters.attach(player, v)
+        core.after(0, characters.attach, player, characters.get_attachment(v))
     end
 end
 
@@ -104,7 +101,6 @@ end)
 
 core.register_on_leaveplayer(function(player, timed_out)
     characters.save_attachments(player)
-    characters.detach_all(player)
 end)
 
 core.register_chatcommand("attach", {
@@ -156,6 +152,7 @@ characters.register_attachment({
             visual_size = {x = 0.6, y = 0.6, z = 0.6},
             mesh = "characters_attachment_hat.glb",
             textures = {},
+            static_save = false
         },
         on_detach = function(self, parent)
             if self.object ~= nil then
