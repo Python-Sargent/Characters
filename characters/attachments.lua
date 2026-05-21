@@ -1,3 +1,4 @@
+-- characters/attachments.lua
 
 characters.registered_attachments = {}
 
@@ -17,7 +18,7 @@ characters.summon_attachment = function(name)
     return core.add_entity(vector.zero(), name, nil)
 end
 
-characters.detach = function(player, attachment, first_only)
+characters.detach_by_name = function(player, attachment, first_only)
     if characters.attachments[player:get_player_name()] ~= nil then
         for k,v in pairs(characters.attachments[player:get_player_name()]) do
             if v.entity_name == attachment.entity_name and core.objects_by_guid[v.guid] ~= nil then
@@ -28,6 +29,22 @@ characters.detach = function(player, attachment, first_only)
                 if first_only then
                     return true, "Detached " .. attachment.name
                 end
+            end
+        end
+        return true, "Detached all " .. attachment.name .. "(s)"
+    else
+        return false, "No '" .. attachment.name .. "' is attached"
+    end
+end
+
+characters.detach_by_guid = function(player, guid)
+    if characters.attachments[player:get_player_name()] ~= nil then
+        for k,v in pairs(characters.attachments[player:get_player_name()]) do
+            if v.guid == guid and core.objects_by_guid[v.guid] ~= nil then
+                local obj = core.objects_by_guid[v.guid]
+                obj:set_detach() -- don't know if this is needed
+                obj:remove()
+                characters.attachments[player:get_player_name()][k] = nil
             end
         end
         return true, "Detached all " .. attachment.name .. "(s)"
@@ -73,7 +90,7 @@ characters.attach = function(player, attachment)
         local obj = characters.summon_attachment(attachment.entity_name)
         if obj ~= nil then
             if characters.attachments[player:get_player_name()] ~= nil then
-                table.insert(characters.attachments[player:get_player_name()], {guid=obj:get_guid(),entity_name=obj:get_luaentity().name, name=attachment.name})
+                table.insert(characters.attachments[player:get_player_name()], {guid=obj:get_guid(),entity_name=obj:get_luaentity().name, name=attachment.name, root=attachment.bone})
             else
                 characters.attachments[player:get_player_name()] = {{guid=obj:get_guid(), entity_name=obj:get_luaentity().name, name=attachment.name}}
             end
@@ -82,6 +99,24 @@ characters.attach = function(player, attachment)
             return true, "Cosmetic succesfully attached"
         else
             return false, "Cannot attach nil"
+        end
+    else
+        return false, "Cannot attach unknown Cosmetic"
+    end
+end
+
+characters.attach_to = function(player, attachment)
+    if not core.settings:get_bool("characters_attachments", true) then
+        return false, "Cosmetics are disabled"
+    end
+    if attachment ~= nil then
+        if characters.attachments[player:get_player_name()] ~= nil then
+            for k, v in pairs(characters.attachments[player:get_player_name()]) do
+                if v.root == attachment.bone then
+                    characters.detach_by_guid(player, v.guid)
+                    break
+                end
+            end
         end
     else
         return false, "Cannot attach unknown Cosmetic"
@@ -129,7 +164,7 @@ core.register_chatcommand("detach", {
         local player = core.get_player_by_name(name)
 		if player then
             if p[1] ~= nil then
-                return characters.detach(player, characters.get_attachment(p[1]), true)
+                return characters.detach_by_name(player, characters.get_attachment(p[1]), true)
             end
 		else
 			return false, "Must be a player to have attachments"

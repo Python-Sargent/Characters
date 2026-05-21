@@ -1,3 +1,5 @@
+-- characters_api/init.lua
+
 characters.api = {}
 
 characters.api.update_model = function(player, override)
@@ -26,8 +28,10 @@ end)
 
 characters.api.steps = {}
 
-characters.api.step = function(stepfunc)
-    table.insert(characters.api.steps, stepfunc)
+characters.api.add_step = function(stepfunc, gameid)
+    if gameid == nil or gameid == core.get_game_info().id then -- don't bother adding steps for other games while running only one game
+        characters.api.steps[core.get_game_info().id] = stepfunc -- replaces any existing steps, there should be only one api step per game for now
+    end
 end
 
 core.register_globalstep(function(dtime)
@@ -35,8 +39,10 @@ core.register_globalstep(function(dtime)
 		local name = player:get_player_name()
 		local pos = player:get_pos()
 
-        for _, func in ipairs(characters.api.steps) do -- gets expensive fast, may want to enforce only one compat running at a time
-            func(player, dtime)
+        for gameid, step in pairs(characters.api.steps) do
+            if step ~= nil and gameid == core.get_game_info().id then
+                step(player, dtime)
+            end
         end
     end
 end)

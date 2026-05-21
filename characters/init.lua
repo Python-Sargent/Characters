@@ -1,3 +1,5 @@
+-- characters/init.lua
+
 characters = {}
 
 characters.mod_storage = core.get_mod_storage()

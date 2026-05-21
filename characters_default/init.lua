@@ -1,3 +1,5 @@
+-- characters_default/init.lua
+
 characters.api.set_base_properties({
     mesh = "characters_default_player.glb",
     textures = {
@@ -148,7 +150,7 @@ core.register_on_dieplayer(function(player, reason)
     player:set_bone_override("Neck", {position = nil, rotation = nil})
 end)
 
-characters.api.step(function(player, dtime)
+characters.api.add_step(function(player, dtime)
     if player:get_hp() <= 0 then return end
 
     local vel = player:get_velocity()
@@ -231,4 +233,4 @@ characters.api.step(function(player, dtime)
         -- idling
         characters.set_animation(player, {name="idle"})
     end
-end)
+end, nil)
