@@ -1,0 +1,6 @@
+[Performance]
+
+#   Use velocity based ground detection instead of node checking
+#
+#   Slightly faster performance, but can cause odd behavior
+characters_velocity_ground_detection (Use Velocity Ground Detection) bool false

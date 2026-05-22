@@ -140,8 +140,13 @@ local crawlable = function(player)
 end
 
 characters.is_on_ground = function(player)
-    local stand = core.get_node(vector.offset(player:get_pos(), 0, -0.5, 0))
-    return core.registered_nodes[stand.name].walkable
+    if core.settings:get_bool("characters_velocity_ground_detection", false) == true then
+        local vel = player:get_velocity()
+        return math.abs(vel.y) < 0.1
+    else
+        local stand = core.get_node(vector.offset(player:get_pos(), 0, -0.5, 0))
+        return core.registered_nodes[stand.name].walkable
+    end
 end
 
 core.register_on_dieplayer(function(player, reason)
@@ -220,9 +225,11 @@ characters.api.add_step(function(player, dtime)
             characters.set_animation(player, {name="fly"})
         else
             if characters.get_anim(player) ~= nil then
-                local an = characters.get_anim(player).name
+                local an = characters.get_anim(player)
                 if an == "walk" or an == "strafe" then
                     player:set_animation_frame_speed(1*speed)
+                else
+                    characters.set_animation(player, {name="idle"})
                 end
             else
                 characters.set_animation(player, {name="idle"})
