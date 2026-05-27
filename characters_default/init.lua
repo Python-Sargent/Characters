@@ -83,7 +83,7 @@ characters.register_animation({
 	speed = 0, -- overridden by dynamic animaiton
 	blend = 0.5,
 	loop = true,
-    eye_offset = vector.new(0, -12, 0)
+    eye_offset = vector.new(0, -14, 0)
 })
 
 characters.register_animation({
@@ -92,7 +92,7 @@ characters.register_animation({
 	speed = 0, 
 	blend = 0.1,
 	loop = true,
-    eye_offset = vector.new(0, -12, 0)
+    eye_offset = vector.new(0, -14, 0)
 })
 
 local calculate_eye_offset = function(player)
@@ -167,9 +167,7 @@ characters.api.add_step(function(player, dtime)
 
     local speed = math.abs(vel.x) + math.abs(vel.z)
 
-    if player:get_hp() > 0 then
-        player:set_bone_override("Neck", { position = nil, rotation = {vec=vector.new((1-look.y+270)*1.6, 0, 0), interpolation=0.1}})
-    end
+    local strafe_rot = 0
     
     -- for movement, speed of animation should be affected by velocity
     if core.settings:get_bool("characters_allow_crawl", true) and crawlable(player) then
@@ -218,6 +216,10 @@ characters.api.add_step(function(player, dtime)
                 -- walking
                 characters.set_animation(player, {name="walk"})
                 player:set_animation_frame_speed(9*speed)
+                if characters.api.moving(player).x then
+                    --rotate spine
+                    
+                end
             else
                 characters.set_animation(player, {name="idle"})
             end
@@ -235,9 +237,23 @@ characters.api.add_step(function(player, dtime)
                 characters.set_animation(player, {name="idle"})
             end
         end
+        if characters.api.moving(player).x and characters.api.moving(player).y then
+            if cont.movement_y > 0 then
+                strafe_rot = cont.movement_x
+            else
+                strafe_rot = -cont.movement_x
+            end
+            player:set_bone_override("Spine", { position = nil, rotation = {vec=vector.new(0, strafe_rot, 0), interpolation=0.1}})
+        end
         -- no good way to check if player is using fast mode, sprinting will have to wait
     else
         -- idling
         characters.set_animation(player, {name="idle"})
+    end
+    if strafe_rot == 0 then
+        player:set_bone_override("Spine", nil)
+    end
+    if player:get_hp() > 0 then
+        player:set_bone_override("Neck", { position = nil, rotation = {vec=vector.new((1-look.y+270)*1.6, -strafe_rot, 0), interpolation=0.1}})
     end
 end, nil)
